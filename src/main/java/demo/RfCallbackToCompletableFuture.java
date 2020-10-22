@@ -16,12 +16,18 @@ public class RfCallbackToCompletableFuture<T> implements Callback<T> {
 
     @Override
     public void onResponse(Call<T> call, Response<T> response) {
+        System.out.println("In onResponse callback: Thread: " +
+                Thread.currentThread().getId() + ", " + Thread.currentThread());
+
         cf.complete(response);
     }
 
 
     @Override
     public void onFailure(Call<T> call, Throwable t) {
+        System.out.println("In onFailure callback: Thread: " +
+                Thread.currentThread().getId() + ", " + Thread.currentThread());
+
         cf.completeExceptionally(t);
     }
 }
