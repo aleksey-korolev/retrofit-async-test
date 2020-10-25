@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.RestController;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import rx.Observable;
+import rx.subjects.PublishSubject;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -16,6 +18,8 @@ import java.util.stream.Stream;
 
 @RestController
 public class DemoController {
+
+    private int counter = 0;
 
     ForkJoinPool fjPoolP200 = new ForkJoinPool(200);
     ForkJoinPool fjPoolP400 = new ForkJoinPool(400);
@@ -29,7 +33,7 @@ public class DemoController {
     public ResponseEntity<String> oneSecQuery() throws Exception {
 
         Thread.currentThread().sleep(1000);
-        return ResponseEntity.ok("Success");
+        return ResponseEntity.ok(String.valueOf(++counter));
     }
 
     @GetMapping(value = "/rf", produces = "application/json")
@@ -88,7 +92,7 @@ public class DemoController {
             } catch (IOException e) {
                 return (e.getMessage());
             }
-        }, fjPoolP200);
+        }, fjPoolP400);
 
         CompletableFuture<String> completableFuture2 = CompletableFuture.supplyAsync(() -> {
             try {
@@ -96,11 +100,11 @@ public class DemoController {
             } catch (IOException e) {
                 return (e.getMessage());
             }
-        }, fjPoolP200);
+        }, fjPoolP400);
 
-        // ToDo: instead of waiting for completableFuture result, run both CFs in parallel and wait for completion of both
         CompletableFuture<Void> combinedFuture = CompletableFuture.allOf(completableFuture, completableFuture2);
 
+        // ToDo: wait for either of CFs and process response, then wait for the remaining response and process it too
         combinedFuture.get();
 
         String combinedResult = Stream.of(completableFuture, completableFuture2)
@@ -110,9 +114,39 @@ public class DemoController {
         return combinedResult;
     }
 
+
+    @GetMapping(value = "/rfcfAsync2Either", produces = "application/json")
+    @Async
+    public String retrofitCFQueryAsync2Either() throws Exception {
+        CompletableFuture<String> completableFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                return "1: " + SimpleOneSecRfService.call.clone().execute().body();
+            } catch (IOException e) {
+                return (e.getMessage());
+            }
+        }, fjPoolP400);
+
+        CompletableFuture<String> completableFuture2 = CompletableFuture.supplyAsync(() -> {
+            try {
+                return "2: " + SimpleOneSecRfService.call.clone().execute().body();
+            } catch (IOException e) {
+                return (e.getMessage());
+            }
+        }, fjPoolP400);
+
+//        CompletableFuture<Void> combinedFuture = completableFuture.acceptEither(completableFuture2, r -> {System.out.println(r);});
+        CompletableFuture<Void> combinedFuture = completableFuture.thenAcceptAsync(r -> {System.out.println(r);});
+        CompletableFuture<Void> combinedFuture2 = completableFuture2.thenAcceptAsync(r -> {System.out.println(r);});
+
+        // ToDo: wait for either of CFs and process response, then wait for the remaining response and process it too
+//        combinedFuture.get();
+
+        String result = "";
+        return result;
+    }
+
     @GetMapping(value = "/rfcf3", produces = "application/json")
     public String retrofitCFQuery3() throws Exception {
-        System.out.println("In Servlet: " + Thread.currentThread());
         CompletableFuture<Response<String>> completableFuture = new CompletableFuture<>();
         SimpleOneSecRfService.call.clone().enqueue(new RfCallbackToCompletableFuture<>(completableFuture));
 
@@ -127,7 +161,19 @@ public class DemoController {
         CompletableFuture<Void> combinedFuture = CompletableFuture.allOf(completableFuture, completableFuture2);
 
         combinedFuture.get();
+        System.out.println(SimpleOneSecRfService.okHttpClient.connectionPool().connectionCount());
 
         return "Success2";
+    }
+
+    @GetMapping(value = "/rfrx", produces = "application/json")
+    public String retrofitRxJava() throws Exception {
+        PublishSubject publishSubject = PublishSubject.create();
+        publishSubject.subscribe(System.out::println);
+        Observable<String> observable = SimpleOneSecRfServiceWithObservable.oneSec.one();
+        Observable<String> observable2 = SimpleOneSecRfServiceWithObservable.oneSec.one();
+        observable.subscribe(publishSubject);
+        observable2.subscribe(publishSubject);
+        return "Success";
     }
 }

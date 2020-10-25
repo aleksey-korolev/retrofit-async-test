@@ -25,8 +25,8 @@ public class RfCallbackToCompletableFuture<T> implements Callback<T> {
 
     @Override
     public void onFailure(Call<T> call, Throwable t) {
-        System.out.println("In onFailure callback: Thread: " +
-                Thread.currentThread().getId() + ", " + Thread.currentThread());
+//        System.out.println("In onFailure callback: Thread: " +
+//                Thread.currentThread().getId() + ", " + Thread.currentThread());
 
         cf.completeExceptionally(t);
     }

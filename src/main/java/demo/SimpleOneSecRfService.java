@@ -21,14 +21,15 @@ public final class SimpleOneSecRfService {
   }
 
   // OkHttpClient. Be conscious with the order
-//  static OkHttpClient okHttpClient = new OkHttpClient()
-//          .newBuilder()
-//          .connectionPool(new ConnectionPool(200,5L, TimeUnit.MINUTES))
-//          .build();
+  static OkHttpClient okHttpClient = new OkHttpClient()
+          .newBuilder()
+          .connectionPool(new ConnectionPool(200,5L, TimeUnit.MINUTES))
+          .build();
+
 
   static Retrofit retrofit =
           new Retrofit.Builder()
-//                  .client(okHttpClient)
+                  .client(okHttpClient)
                   .baseUrl(API_URL)
 //                  .addConverterFactory(GsonConverterFactory.create())
                   .addConverterFactory(ScalarsConverterFactory.create())
