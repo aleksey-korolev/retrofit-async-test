@@ -138,9 +138,6 @@ public class DemoController {
         CompletableFuture<Void> combinedFuture = completableFuture.thenAcceptAsync(r -> {System.out.println(r);});
         CompletableFuture<Void> combinedFuture2 = completableFuture2.thenAcceptAsync(r -> {System.out.println(r);});
 
-        // ToDo: wait for either of CFs and process response, then wait for the remaining response and process it too
-//        combinedFuture.get();
-
         String result = "";
         return result;
     }
@@ -153,17 +150,15 @@ public class DemoController {
         CompletableFuture<Response<String>> completableFuture2 = new CompletableFuture<>();
         SimpleOneSecRfService.call.clone().enqueue(new RfCallbackToCompletableFuture<>(completableFuture2));
 
-        // ToDo: combine and wait for the slowest task to complete
 //        String result = completableFuture.handle((response, failure) -> {return response.body();}).get();
 //        String result2 = completableFuture2.handle((response, failure) -> {return response.body();}).get();
 //        return result + result2;
 
-        CompletableFuture<Void> combinedFuture = CompletableFuture.allOf(completableFuture, completableFuture2);
 
-        combinedFuture.get();
+
         System.out.println(SimpleOneSecRfService.okHttpClient.connectionPool().connectionCount());
 
-        return "Success2";
+        return "Success";
     }
 
     @GetMapping(value = "/rfrx", produces = "application/json")
@@ -175,5 +170,13 @@ public class DemoController {
         observable.subscribe(publishSubject);
         observable2.subscribe(publishSubject);
         return "Success";
+    }
+
+    @GetMapping(value = "/rfArmeria", produces = "application/json")
+    public String retrofitArmeria() throws Exception {
+        CompletableFuture<String> completableFuture = SimpleOneSecRfArmeriaServiceWithCF.oneSec.one();
+//        String result = completableFuture.get();
+//        return result;
+        return "Armeria";
     }
 }
